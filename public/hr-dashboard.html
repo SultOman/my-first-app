@@ -149,7 +149,7 @@
             return;
         }
         try {
-            const response = await fetch('http://localhost:4000/hr-check', {
+            const response = await fetch('https://my-first-app-ke88.onrender.com/hr-check', {
                 method: 'GET',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -170,7 +170,7 @@
 
     async function logout() {
         try {
-            await fetch('http://localhost:4000/hr-logout', {
+            await fetch('https://my-first-app-ke88.onrender.com/hr-logout', {
                 method: 'POST',
                 headers: { 'x-hr-token': token }
             });
@@ -181,7 +181,7 @@
 
     async function loadEmployees() {
         try {
-            const response = await fetch('http://localhost:4000/employees', {
+            const response = await fetch('https://my-first-app-ke88.onrender.com/employees', {
                 method: 'GET',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -258,7 +258,7 @@
             return;
         }
         try {
-            const response = await fetch(`http://localhost:4000/review/${id}`, {
+            const response = await fetch(`https://my-first-app-ke88.onrender.com/review/${id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
