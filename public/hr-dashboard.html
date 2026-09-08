@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Manager Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        h1 { font-size: 28px; color: #333; }
+        .subtitle { color: #888; margin-top: 5px; }
+        .stats {
+            display: flex; gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px; flex-wrap: wrap;
+        }
+        .stat-card {
+            background: white; padding: 20px 30px;
+            border-radius: 15px; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); min-width: 120px;
+        }
+        .stat-card .number { font-size: 32px; font-weight: 800; }
+        .stat-card .label  { font-size: 13px; color: #888; margin-top: 5px; }
+        .total    .number { color: #667eea; }
+        .pending  .number { color: #f39c12; }
+        .approved .number { color: #27ae60; }
+        .rejected .number { color: #e74c3c; }
+        .top-bar {
+            display: flex; justify-content: space-between;
+            align-items: center; max-width: 700px;
+            margin: 0 auto 20px;
+        }
+        .top-bar a { color: #667eea; text-decoration: none; font-weight: 600; font-size: 14px; }
+        .logout-btn {
+            padding: 8px 20px; background: #e74c3c;
+            color: white; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: 600; font-size: 14px;
+        }
+        .refresh-btn {
+            display: block; margin: 0 auto 25px;
+            padding: 10px 25px; background: #667eea;
+            color: white; border: none; border-radius: 10px;
+            cursor: pointer; font-size: 14px; font-weight: 600;
+        }
+        .employee-card {
+            background: white; border-radius: 15px;
+            padding: 20px 25px; margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            max-width: 700px; margin-left: auto; margin-right: auto;
+            border-left: 5px solid #ddd;
+        }
+        .employee-card.pending  { border-left-color: #f39c12; }
+        .employee-card.approved { border-left-color: #27ae60; }
+        .employee-card.rejected { border-left-color: #e74c3c; }
+        .card-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 12px;
+        }
+        .employee-name { font-size: 18px; font-weight: 700; color: #333; }
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 700; text-transform: uppercase;
+        }
+        .badge.pending  { background: #fff3cd; color: #856404; }
+        .badge.approved { background: #d1e7dd; color: #0a3622; }
+        .badge.rejected { background: #f8d7da; color: #58151c; }
+        .info-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 8px; margin-bottom: 15px;
+            font-size: 14px; color: #555;
+        }
+        .review-section { border-top: 1px solid #eee; padding-top: 15px; }
+        .review-section textarea {
+            width: 100%; padding: 10px;
+            border: 2px solid #eee; border-radius: 8px;
+            font-size: 14px; resize: vertical;
+            margin-bottom: 10px; outline: none;
+        }
+        .review-section textarea:focus { border-color: #667eea; }
+        .btn-group { display: flex; gap: 10px; }
+        .btn-approve, .btn-reject {
+            flex: 1; padding: 10px; border: none;
+            border-radius: 8px; font-size: 14px;
+            font-weight: 700; cursor: pointer; transition: opacity 0.2s;
+        }
+        .btn-approve { background: #27ae60; color: white; }
+        .btn-reject  { background: #e74c3c; color: white; }
+        .btn-approve:hover, .btn-reject:hover { opacity: 0.85; }
+        .hr-comment {
+            margin-top: 10px; padding: 10px;
+            background: #f8f9fa; border-radius: 8px;
+            font-size: 13px; color: #666; font-style: italic;
+        }
+        .empty { text-align: center; padding: 60px; color: #aaa; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>👔 HR Manager Dashboard</h1>
+    <p class="subtitle">Review employee submissions below</p>
+</div>
+
+<div class="top-bar">
+    <a href="index.html">← Back to Employee Form</a>
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+</div>
+
+<div class="stats">
+    <div class="stat-card total">
+        <div class="number" id="totalCount">0</div>
+        <div class="label">Total</div>
+    </div>
+    <div class="stat-card pending">
+        <div class="number" id="pendingCount">0</div>
+        <div class="label">Pending</div>
+    </div>
+    <div class="stat-card approved">
+        <div class="number" id="approvedCount">0</div>
+        <div class="label">Approved</div>
+    </div>
+    <div class="stat-card rejected">
+        <div class="number" id="rejectedCount">0</div>
+        <div class="label">Rejected</div>
+    </div>
+</div>
+
+<button class="refresh-btn" onclick="loadEmployees()">🔄 Refresh List</button>
+
+<div id="employeeList"></div>
+
+<script>
+    // Get token from browser storage
+    const token = localStorage.getItem('hrToken');
+
+    // First thing — check if HR is logged in!
+    checkLogin();
+
+    async function checkLogin() {
+        // If no token at all — go to login immediately!
+        if (!token) {
+            window.location.href = 'hr-login.html';
+            return;
+        }
+        try {
+            const response = await fetch('http://localhost:4000/hr-check', {
+                method: 'GET',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-hr-token': token 
+                }
+            });
+            const result = await response.json();
+            if (!result.loggedIn) {
+                window.location.href = 'hr-login.html';
+            } else {
+                loadEmployees();
+            }
+        } catch (error) {
+            console.log('Check login error:', error);
+            window.location.href = 'hr-login.html';
+        }
+    }
+
+    async function logout() {
+        try {
+            await fetch('http://localhost:4000/hr-logout', {
+                method: 'POST',
+                headers: { 'x-hr-token': token }
+            });
+        } catch(e) {}
+        localStorage.removeItem('hrToken');
+        window.location.href = 'hr-login.html';
+    }
+
+    async function loadEmployees() {
+        try {
+            const response = await fetch('http://localhost:4000/employees', {
+                method: 'GET',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-hr-token': token 
+                }
+            });
+
+            if (response.status === 401) {
+                window.location.href = 'hr-login.html';
+                return;
+            }
+
+            const employees = await response.json();
+
+            document.getElementById('totalCount').textContent    = employees.length;
+            document.getElementById('pendingCount').textContent  = employees.filter(e => e.status === 'pending').length;
+            document.getElementById('approvedCount').textContent = employees.filter(e => e.status === 'approved').length;
+            document.getElementById('rejectedCount').textContent = employees.filter(e => e.status === 'rejected').length;
+
+            const list = document.getElementById('employeeList');
+
+            if (employees.length === 0) {
+                list.innerHTML = '<div class="empty">😴 No submissions yet! Tell employees to fill the form!</div>';
+                return;
+            }
+
+            list.innerHTML = employees.map(employee => `
+                <div class="employee-card ${employee.status}">
+                    <div class="card-header">
+                        <div class="employee-name">
+                            👤 ${employee.name}
+                            <span style="color:#aaa;font-size:14px;font-weight:400">#${employee.id}</span>
+                        </div>
+                        <span class="badge ${employee.status}">${employee.status}</span>
+                    </div>
+                    <div class="info-grid">
+                        <span>🏢 ${employee.department}</span>
+                        <span>💼 ${employee.position}</span>
+                        <span>📧 ${employee.email}</span>
+                        <span>📱 ${employee.phone}</span>
+                        <span style="color:#aaa;font-size:12px">🕐 ${employee.submittedAt}</span>
+                    </div>
+                    ${employee.status === 'pending' ? `
+                        <div class="review-section">
+                            <textarea id="comment-${employee.id}"
+                                placeholder="Write your HR comment..." rows="2"></textarea>
+                            <div class="btn-group">
+                                <button class="btn-approve"
+                                    onclick="reviewEmployee(${employee.id}, 'approved')">✅ Approve</button>
+                                <button class="btn-reject"
+                                    onclick="reviewEmployee(${employee.id}, 'rejected')">❌ Reject</button>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="hr-comment">
+                            💬 HR Comment: ${employee.hrComment || 'No comment'}
+                            <span style="color:#aaa;font-size:11px">— reviewed ${employee.reviewedAt}</span>
+                        </div>
+                    `}
+                </div>
+            `).join('');
+
+        } catch (error) {
+            console.log('Load employees error:', error);
+            document.getElementById('employeeList').innerHTML =
+                '<div class="empty">❌ Cannot connect to server!</div>';
+        }
+    }
+
+    async function reviewEmployee(id, decision) {
+        const comment = document.getElementById(`comment-${id}`).value;
+        if (!comment.trim()) {
+            alert('Please write a comment before reviewing!');
+            return;
+        }
+        try {
+            const response = await fetch(`http://localhost:4000/review/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-hr-token': token
+                },
+                body: JSON.stringify({ decision, comment })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert(result.message);
+                loadEmployees();
+            }
+        } catch (error) {
+            alert('Cannot connect to server!');
+        }
+    }
+</script>
+
+</body>
+</html>

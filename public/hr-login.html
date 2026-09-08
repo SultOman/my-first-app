@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Manager Login</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        .lock-icon { font-size: 60px; margin-bottom: 20px; }
+        h1 { font-size: 24px; color: #333; margin-bottom: 8px; }
+        .subtitle { color: #888; font-size: 14px; margin-bottom: 35px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #555; font-size: 14px; }
+        input {
+            width: 100%; padding: 13px 16px;
+            border: 2px solid #e0e0e0; border-radius: 10px;
+            font-size: 15px; outline: none; transition: border-color 0.3s;
+        }
+        input:focus { border-color: #0f3460; }
+        button {
+            width: 100%; padding: 14px;
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            color: white; border: none; border-radius: 10px;
+            font-size: 16px; font-weight: 700; cursor: pointer;
+            transition: opacity 0.2s; margin-top: 10px;
+        }
+        button:hover { opacity: 0.85; }
+        .message { margin-top: 20px; padding: 12px; border-radius: 10px; font-weight: 600; display: none; }
+        .message.error   { background: #f8d7da; color: #721c24; display: block; }
+        .message.success { background: #d4edda; color: #155724; display: block; }
+        .back-link { margin-top: 25px; font-size: 13px; color: #888; }
+        .back-link a { color: #0f3460; text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <div class="lock-icon">🔐</div>
+    <h1>HR Manager Login</h1>
+    <p class="subtitle">Restricted area — authorized personnel only!</p>
+    <div class="form-group">
+        <label>👤 Username</label>
+        <input type="text" id="username" placeholder="Enter username" />
+    </div>
+    <div class="form-group">
+        <label>🔑 Password</label>
+        <input type="password" id="password" placeholder="Enter password" />
+    </div>
+    <button onclick="login()">🚪 Login to Dashboard</button>
+    <div id="message" class="message"></div>
+    <div class="back-link">
+        <a href="index.html">← Back to Employee Form</a>
+    </div>
+</div>
+
+<script>
+    async function login() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const messageDiv = document.getElementById('message');
+
+        if (!username || !password) {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = 'Please enter username and password!';
+            return;
+        }
+
+        messageDiv.className = 'message';
+        messageDiv.textContent = '';
+
+        try {
+            const response = await fetch('http://localhost:4000/hr-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            });
+
+            if (!response.ok) {
+                throw new Error('Server error: ' + response.status);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                localStorage.setItem('hrToken', result.token);
+                messageDiv.className = 'message success';
+                messageDiv.textContent = 'Welcome! Redirecting to dashboard...';
+                setTimeout(() => {
+                    window.location.href = 'hr-dashboard.html';
+                }, 1000);
+            } else {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = result.message;
+            }
+
+        } catch (error) {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = 'Error: ' + error.message;
+        }
+    }
+
+    document.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') login();
+    });
+</script>
+</body>
+</html>
